@@ -1,0 +1,16 @@
+news_articles
+    - content
+    - vector embeddings (dynamic)
+        - Within BERTopic run: remains constant
+        - Across BERTopic runs: changed
+
+user_profiles
+    - sso credentials
+        - 
+    - interaction histories
+        - news id
+        - amount of time spent (weight of "user interest")
+        - exact time (for applying "interest decay")
+    - vector embeddings
+        - Within BERTopic run: change only if new interactions
+        - Across BERTopic runs: changed
