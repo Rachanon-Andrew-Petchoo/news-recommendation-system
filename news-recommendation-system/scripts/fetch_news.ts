@@ -92,6 +92,7 @@ async function fetchAndStoreNews() {
           );
   
           console.log('✔ Inserted article:', item.title);
+          break; // for testing with one article remove this line after testing
     
     } 
 }
