@@ -21,8 +21,9 @@ export class UserProfileService {
     // Decay Factor (Hyperparameter Group #2) - FEEL FREE TO ADJUST!
     private DECAY_FACTOR = 0.05 // Higher value indicates faster decay
 
-    // Conversion ratio - visit into ratings, for ensuring proportional interest weight computation
+    // Conversion ratio (Hyperparameter Group #3) - visit into ratings, for ensuring proportional interest weight computation
     private VISITS_TO_RATINGS = 2
+    private WPM = 238 // Average reading speed (English) 
 
     /**
      * Calculating a user's interest profile with this function
@@ -124,7 +125,7 @@ export class UserProfileService {
           
             // Calculating implicit component (normalized by content length)
             const normalizedTimeSpent = interaction.time_spent_seconds / interaction.content_length;
-            const implicitComponent = this.IMPLICIT_SCALE * recencyDecay * (1 + normalizedTimeSpent); // Adding 1 to account for the visit itself
+            const implicitComponent = this.IMPLICIT_SCALE * recencyDecay * (1 + (normalizedTimeSpent * this.WPM - 1) * 0.25); // Adding 1 to account for the visit itself
           
             // Combining explicit and implicit components
             const interestWeight = explicitComponent + (this.VISITS_TO_RATINGS * implicitComponent);
