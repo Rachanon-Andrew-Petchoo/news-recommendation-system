@@ -1,0 +1,3 @@
+openai
+bertopic
+sentence_transformers
