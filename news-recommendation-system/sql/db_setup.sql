@@ -41,7 +41,8 @@ CREATE TABLE news_articles (
 
 CREATE TABLE news_profiles (
     news_id INT PRIMARY KEY,
-    news_embedding JSON NOT NULL,
+    llm_embedding JSON NOT NULL,
+    prob_embedding JSON NOT NULL,
 
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
