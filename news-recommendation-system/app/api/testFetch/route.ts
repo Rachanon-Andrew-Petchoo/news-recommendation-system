@@ -134,93 +134,93 @@ export async function GET(request: NextRequest) {
 
 
 
-  // const newsAPI = new NewsAPI(process.env.NEWS_API_KEY!);
+  const newsAPI = new NewsAPI(process.env.NEWS_API_KEY!);
     
-  // // fetch top headlines
+  // fetch top headlines
 
-  // const response = await newsAPI.getTopHeadlines({
-  //     country: 'us',
-  //   });
-  // // extend news articles to the database
-  // //const response = await newsAPI.getEverything({q: 'politics', language: 'en', from : '2025-04-26', to: '2025-04-28'});
+  const response = await newsAPI.getTopHeadlines({
+      country: 'us',
+    });
+  // extend news articles to the database
+  //const response = await newsAPI.getEverything({q: 'politics', language: 'en', from : '2025-04-26', to: '2025-04-28'});
   
-  // const articles = response.articles || [];
-  // if (articles.length === 0) {
-  //   console.log('No headlines found.');
-  //   return;
-  // }
-  // console.log('called the news api');
-  // for (const item of articles) {
-  //   if (!item.url) continue;
+  const articles = response.articles || [];
+  if (articles.length === 0) {
+    console.log('No headlines found.');
+    return;
+  }
+  console.log('called the news api');
+  for (const item of articles) {
+    if (!item.url) continue;
 
-  //   // download the full article HTML
-  //   // Reference website: https://newsapi.org/docs/guides/how-to-get-the-full-content-for-a-news-article
-  //   try {
-  //     const htmlRes = await axios.get(item.url, { responseType: 'text' });
-  //     const dom = new JSDOM(htmlRes.data, { url: item.url });
+    // download the full article HTML
+    // Reference website: https://newsapi.org/docs/guides/how-to-get-the-full-content-for-a-news-article
+    try {
+      const htmlRes = await axios.get(item.url, { responseType: 'text' });
+      const dom = new JSDOM(htmlRes.data, { url: item.url });
 
-  //     const parsed = new Readability(dom.window.document).parse();
-  //     const fullContent = parsed?.textContent?.trim()
-  //       ?? [item.title, item.description].filter(Boolean).join('\n\n');
+      const parsed = new Readability(dom.window.document).parse();
+      const fullContent = parsed?.textContent?.trim()
+        ?? [item.title, item.description].filter(Boolean).join('\n\n');
 
-  //     // embed the content
-  //     const news_embedding = await llm_embedText(fullContent);
+      // embed the content
+      const news_embedding = await llm_embedText(fullContent);
 
-  //     // output items
-  //     const author = item.author;
-  //     const source_name = item.source.name;
-  //     const source_id = item.source.id;
-  //     const title = item.title;
-  //     const description = item.description;
-  //     const url = item.url;
-  //     const publishedAt = item.publishedAt;
-  //     const image_url = item.urlToImage ?? null;
-  //     const now = new Date().toISOString();
+      // output items
+      const author = item.author;
+      const source_name = item.source.name;
+      const source_id = item.source.id;
+      const title = item.title;
+      const description = item.description;
+      const url = item.url;
+      const publishedAt = item.publishedAt;
+      const image_url = item.urlToImage ?? null;
+      const now = new Date().toISOString();
       
 
-  //     const [res] = await pool.execute<import('mysql2').ResultSetHeader>(
-  //       `
-  //       INSERT INTO news_articles
-  //         (source_id, source_name, author, title, description, url, published_at, content, url_to_image, created_at, updated_at)
-  //       VALUES
-  //         (?,?,?, ?, ?, ?, ?, ?, ?, ?, ?)
-  //       `,
-  //       [
-  //         source_id,
-  //         source_name,
-  //         author,
-  //         title,
-  //         description,
-  //         url,
-  //         publishedAt,
-  //         fullContent,
-  //         image_url,
-  //         now,
-  //         now
-  //       ]
-  //     );
-  //     const newsId = res.insertId;
-  //     console.log('done fetch news, start embedding');
-  //     await pool.execute<import('mysql2').ResultSetHeader>(
-  //       `
-  //       INSERT INTO news_profiles
-  //         (news_id, llm_embedding, updated_at)
-  //       VALUES
-  //         (?, ?, ?)
-  //       `,
-  //       [
-  //         newsId,
-  //         JSON.stringify(news_embedding),
-  //         now,
-  //       ]
-  //     );
-  //     console.log('✔ Inserted article:', item.title);
-  //   }
-  //   catch(error) {
-  //     console.log('Error fetching article:', item.title, error);
-  //     continue;
-  //   }
-  // }
+      const [res] = await pool.execute<import('mysql2').ResultSetHeader>(
+        `
+        INSERT INTO news_articles
+          (source_id, source_name, author, title, description, url, published_at, content, url_to_image, created_at, updated_at)
+        VALUES
+          (?,?,?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `,
+        [
+          source_id,
+          source_name,
+          author,
+          title,
+          description,
+          url,
+          publishedAt,
+          fullContent,
+          image_url,
+          now,
+          now
+        ]
+      );
+      const newsId = res.insertId;
+      console.log('done fetch news, start embedding');
+      await pool.execute<import('mysql2').ResultSetHeader>(
+        `
+        INSERT INTO news_profiles
+          (news_id, llm_embedding, updated_at)
+        VALUES
+          (?, ?, ?)
+        `,
+        [
+          newsId,
+          JSON.stringify(news_embedding),
+          now,
+        ]
+      );
+      console.log('✔ Inserted article:', item.title);
+    }
+    catch(error) {
+      console.log('Error fetching article:', item.title, error);
+      continue;
+    }
+  }
 
   /***
    * testing for the bertopic
