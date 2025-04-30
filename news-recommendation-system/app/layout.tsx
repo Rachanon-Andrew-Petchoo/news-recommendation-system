@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
 import { Newspaper, Stars } from "lucide-react"; // 👈 Add Lucide icons
+import { AuthButton } from "./components/AuthButton"
+import { SessionWrapper } from "./components/SessionWrapper"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,6 +29,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-100 text-gray-900`}>
+      <SessionWrapper>
         <header className="bg-gray-900/80 backdrop-blur-md shadow-md sticky top-0 z-50">
           <div className="max-w-6xl mx-auto flex items-center justify-between px-6 py-4">
             <Link href="/" className="text-2xl font-bold text-white hover:text-blue-400 transition">
@@ -46,10 +49,13 @@ export default function RootLayout({
                 <Newspaper size={18} /> News Showcase
               </Link>
             </nav>
+
+            <AuthButton />
           </div>
         </header>
 
         <main className="max-w-6xl mx-auto px-6 py-10">{children}</main>
+        </SessionWrapper>
       </body>
     </html>
   );
