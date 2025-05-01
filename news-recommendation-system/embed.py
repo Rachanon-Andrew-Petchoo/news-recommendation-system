@@ -6,6 +6,11 @@ from bertopic import BERTopic
 from bertopic.representation import OpenAI
 import numpy as np
 from scipy.sparse import csr_matrix
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+openai_api_key = os.getenv("OPENAI_KEY")
 
 def content_embedding(content: str) -> list:
     """
@@ -23,7 +28,7 @@ def prob_embedding(content: list[str],
     if not isinstance(embeddings, (np.ndarray, csr_matrix)):
         embeddings = np.array(embeddings, dtype=np.float32)
     if gpt:
-        client = openai.Client(api_key="sk-")
+        client = openai.Client(api_key=openai_api_key)
         prompt = """
         I have a topic that contains the following documents:
         [DOCUMENTS]

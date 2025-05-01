@@ -1,5 +1,6 @@
-import NewsAPI from 'ts-newsapi';
 import { NextRequest, NextResponse } from "next/server";
+
+import NewsAPI from 'ts-newsapi';
 // and we need jsdom and Readability to parse the article HTML
 import axios from 'axios';
 import { JSDOM } from 'jsdom';  
@@ -67,7 +68,7 @@ function Topic_prediction(content: string[], embeddingArray: number[][]): Promis
 }
 
 
-async function prob_embed() {
+export async function prob_embed() {
 
   const db = await pool.getConnection();
   const query = `
@@ -92,9 +93,8 @@ async function prob_embed() {
 
   const updateSql = `
       UPDATE news_profiles
-         SET prob_embedding = ?
-         SET updated_at = NOW()
-       WHERE news_id = ?
+         SET prob_embedding = ?, updated_at = NOW()
+       WHERE news_id = ?;
     `;
     for (let i = 0; i < rows.length; i++) {
       const newsId = rows[i].news_id;
@@ -105,12 +105,13 @@ async function prob_embed() {
       ]);
 
   }
+  return;
 }
 
 
 
 // Fetch all the content from the News API
-async function fetchAndStoreNews() {
+export async function fetchAndStoreNews() {
   const newsAPI = new NewsAPI(process.env.NEWS_API_KEY!);
     
   // fetch top headlines
@@ -127,7 +128,10 @@ async function fetchAndStoreNews() {
     return;
   }
   console.log('called the news api');
+  var count = 0;
   for (const item of articles) {
+    count += 1;
+    if (count === 2) break;
     if (!item.url) continue;
 
     // download the full article HTML
@@ -160,7 +164,7 @@ async function fetchAndStoreNews() {
         INSERT INTO news_articles
           (source_id, source_name, author, title, description, url, published_at, content, url_to_image, created_at, updated_at)
         VALUES
-          (?,?,?, ?, ?, ?, ?, ?, ?, ?, ?)
+          (?,?,?, ?, ?, ?, ?, ?, ?, ?, ?);
         `,
         [
           source_id,
@@ -198,18 +202,18 @@ async function fetchAndStoreNews() {
       continue;
     }
   }
+  return;
+}
 
+export async function GET(request: NextRequest) {
+  await fetchAndStoreNews()
   /***
-   * testing for the bertopic
+   * Calling bertopic for prob distributions of all articles
    */
 
   console.log('call the berttopic');
   await prob_embed();
+
   return NextResponse.json({ message: 'Done' });
+
 }
-
-
-fetchAndStoreNews().catch(err => {
-  console.error('Error fetching/storing news:', err);
-  process.exit(1);
-});
