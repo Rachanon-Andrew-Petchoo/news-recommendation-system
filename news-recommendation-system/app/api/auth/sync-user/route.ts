@@ -14,17 +14,22 @@ export async function POST(req: NextRequest) {
   const db = await pool.getConnection()
 
   try {
-    const [rows] = await db.execute(
-      "SELECT user_id, email, created_at, updated_at FROM users WHERE email = ?",
+    const [rows]: any = await db.execute(
+      "SELECT user_id FROM users WHERE email = ?",
       [email]
     )
 
     if (Array.isArray(rows) && rows.length === 0) {
-      await db.execute("INSERT INTO users (email) VALUES (?)", [email])
-      return NextResponse.json({ message: "User inserted" })
+      const [result]: any = await db.execute(
+        "INSERT INTO users (email) VALUES (?)",
+        [email]
+      )
+      const userId = result.insertId
+      return NextResponse.json({ message: "User inserted", user_id: userId })
     }
 
-    return NextResponse.json({ message: "User already exists" })
+    const userId = rows[0].user_id
+    return NextResponse.json({ message: "User already exists", user_id: userId })
   } catch (err) {
     return NextResponse.json({ error: "Database error" }, { status: 500 })
   } finally {
