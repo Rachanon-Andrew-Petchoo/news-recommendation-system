@@ -26,6 +26,7 @@ export class RecommendationService {
      * @param limit Maximum number of recommendations to return
      * @returns Recommended news articles array with similarity scores
      */
+    // Make it an endpoint + Make sure that the UserProfileService is executed and done first
     async getRecommendations(userId: number, limit: number = 10): Promise<NewsRecommendation[]> {
         try {
         // 1. Get the user's profile (either from cache or calculate it)

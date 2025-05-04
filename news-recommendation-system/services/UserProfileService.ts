@@ -21,26 +21,32 @@ export class UserProfileService {
     // Decay Factor (Hyperparameter Group #2) - FEEL FREE TO ADJUST!
     private DECAY_FACTOR = 0.05 // Higher value indicates faster decay
 
-    // Conversion ratio (Hyperparameter Group #3) - visit into ratings, for ensuring proportional interest weight computation
-    private VISITS_TO_RATINGS = 2
+    // Conversion ratio (Hyperparameter Group #3) - for ensuring proportional interest weight computation
     private WPM = 238 // Average reading speed (English) 
+    private STARS_FOR_ONE_VISIT = 2
+    private STARS_FOR_NEXT_READ = 0.5
 
     /**
      * Calculating a user's interest profile with this function
      * @param userId (User ID)
      * @returns user interest profile (as a vector)
      */
+    // TODO: Make an endpoint for updating user profile
+    // TODO: update the DB columns for prob_embedding (not news_embedding anymore)
+    // Ensure to run this on user login (create hook for this)
     async calculateUserProfile(userId: number): Promise<number[]> {
         try {
             // 1. Fetch all user interactions with associated news embeddings
             const interactions = await this.getUserInteractions(userId);
+
+            // 2. Query the db to get prob_embeddings_dim
+            // const news_embedding_dim = DB operations
             
-            if (interactions.length === 0) {
-                // NEED HELP HERE. I guess we should consider this too! <----------------------------------------------------------
+            // var userProfile = Vector with {dim} dimension -> all equal prob (meaning 1/dim)
+            if (interactions.length > 0) {
+                // 3. Calculate weighted profile based on explicit and implicit feedback
+                userProfile = this.computeWeightedProfile(interactions);
             }
-            
-            // 2. Calculate weighted profile based on explicit and implicit feedback
-            const userProfile = this.computeWeightedProfile(interactions);
             
             // 3. Store the updated profile
             await this.saveUserProfile(userId, userProfile);
@@ -118,17 +124,21 @@ export class UserProfileService {
             const recencyDecay = Math.exp(-this.DECAY_FACTOR * daysSinceInteraction);
           
             // Calculating explicit component (if rating exists)
-            let explicitComponent = 0;
+            let explicitRatings = 0;
             if (interaction.rating !== null) {
-                explicitComponent = interaction.rating * this.EXPLICIT_SCALE * recencyDecay;
+                explicitRatings = interaction.rating;
             }
           
             // Calculating implicit component (normalized by content length)
-            const normalizedTimeSpent = interaction.time_spent_seconds / interaction.content_length;
-            const implicitComponent = this.IMPLICIT_SCALE * recencyDecay * (1 + (normalizedTimeSpent * this.WPM - 1) * 0.25); // Adding 1 to account for the visit itself
+            let numRead = ((interaction.time_spent_seconds / 60) * this.WPM) / interaction.content_length;
+            let numSubsequentRead = numRead - 1;
+            if (numSubsequentRead < 0) {
+                numSubsequentRead = 0
+            }
+            const implicitRatings = this.STARS_FOR_ONE_VISIT + (numSubsequentRead * this.STARS_FOR_NEXT_READ); // Add x stars to each subsequent read
           
             // Combining explicit and implicit components
-            const interestWeight = explicitComponent + (this.VISITS_TO_RATINGS * implicitComponent);
+            const interestWeight = ((this.EXPLICIT_SCALE * explicitRatings) + (this.IMPLICIT_SCALE * implicitRatings)) * recencyDecay;
             totalWeight += interestWeight;
           
             // Add weighted embedding to the profile
@@ -166,13 +176,5 @@ export class UserProfileService {
             console.error(`Error saving profile for user ${userId}:`, error);
             throw error;
         }
-    }
-
-    /** 
-     * Update user profile after any new interaction
-     * Basically called after recording interaction
-     */
-    async updateProfileAfterInteraction(userId: number): Promise<void> {
-        await this.calculateUserProfile(userId); // Ensure to run this on user login (create hook for this)
     }
 }
