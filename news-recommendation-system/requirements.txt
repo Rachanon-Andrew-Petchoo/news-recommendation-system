@@ -1,0 +1,4 @@
+openai
+bertopic
+sentence_transformers
+tf-keras
