@@ -17,3 +17,9 @@ export interface NewsGroup {
     topic: string;
     news: NewsOverview[];
   };
+
+export interface NewsArticle extends NewsOverview {
+  author?: string;
+  url: string;
+  published_at?: string;
+}
