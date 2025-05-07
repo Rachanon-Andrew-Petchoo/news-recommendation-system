@@ -2,18 +2,18 @@ export interface TestCount {
     count: number
   }
 
-export interface NewsArticle {
+export interface NewsOverview {
     news_id: number;
     title: string;
     description?: string;
     url_to_image?: string;
   };
 
-export interface NewsArticleWithTopic_DB extends NewsArticle {
+export interface NewsOverviewWithTopic_DB extends NewsOverview {
     topic: string;
   }
 
 export interface NewsGroup {
     topic: string;
-    news: NewsArticle[];
+    news: NewsOverview[];
   };

@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/libs/mysql";
 import { RowDataPacket } from "mysql2";
-import { NewsArticle, NewsArticleWithTopic_DB, NewsGroup } from "@/types";
+import { NewsOverview, NewsOverviewWithTopic_DB, NewsGroup } from "@/types";
 
 export async function GET(request: NextRequest) {
   try {
@@ -27,9 +27,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Group articles by topic
-    const groupedMap = new Map<string, NewsArticle[]>();
+    const groupedMap = new Map<string, NewsOverview[]>();
 
-    for (const row of rows as NewsArticleWithTopic_DB[]) {
+    for (const row of rows as NewsOverviewWithTopic_DB[]) {
       const { topic, ...article } = row;
       if (!groupedMap.has(topic)) {
         groupedMap.set(topic, []);

@@ -1,10 +1,10 @@
 // components/NewsCards.tsx
 'use client';
 import Link from 'next/link';
-import { NewsArticle } from '@/types';
+import { NewsOverview } from '@/types';
 
 interface NewsCardsProps {
-  articles: NewsArticle[];
+  articles: NewsOverview[];
 }
 
 export default function NewsCards({ articles }: NewsCardsProps) {

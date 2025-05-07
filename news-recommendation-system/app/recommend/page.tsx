@@ -1,8 +1,8 @@
 'use client';
-import { NewsArticle } from '@/types';
+import { NewsOverview } from '@/types';
 import NewsCards from '../components/NewsCard';
 
-const mockRecommendedNews: NewsArticle[] = [
+const mockRecommendedNews: NewsOverview[] = [
   { 
     news_id: 1, 
     title: 'Bitcoin in the bush - the crypto mine in remote Zambia', 
