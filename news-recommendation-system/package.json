@@ -9,7 +9,10 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
     "@mozilla/readability": "^0.6.0",
+    "@mui/material": "^7.1.0",
     "axios": "^1.8.4",
     "jsdom": "^26.1.0",
     "lucide-react": "^0.501.0",

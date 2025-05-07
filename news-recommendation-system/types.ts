@@ -9,6 +9,10 @@ export interface NewsArticle {
     url_to_image?: string;
   };
 
+export interface NewsArticleWithTopic_DB extends NewsArticle {
+    topic: string;
+  }
+
 export interface NewsGroup {
     topic: string;
     news: NewsArticle[];
