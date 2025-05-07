@@ -33,17 +33,26 @@ def prob_embedding(content: list[str],
         I have a topic that contains the following documents:
         [DOCUMENTS]
 
-        Based on the information above, extract a short but highly descriptive topic label of at most 5 words. Make sure it is in the following format:
+        Based on the information above, try to sort them into at least 2 distinct topics and extract a short but highly descriptive topic label of at most 2 words that are human understandble. Make sure it is in the following format:
         topic: <topic label>
         """
         representation_model = OpenAI(client, model="gpt-4o-mini", chat=True, prompt = prompt)
         topic_model_gpt = BERTopic(representation_model=representation_model, calculate_probabilities= True)
     else:
         topic_model_gpt = BERTopic(calculate_probabilities=True)
+    
     topics, probs = topic_model_gpt.fit_transform(content, embeddings)
+    name_series = topic_model_gpt.get_document_info(content).Name
+
+    topics = [n.split("_", 1)[1] for n in name_series]
+
     probs_list = probs.tolist()
-    print(json.dumps(probs_list))
-    return probs_list
+    combined = []
+    for topic, prob in zip(topics, probs_list):
+        combined.append([topic, prob])
+
+    print(json.dumps(combined))
+    return combined
 
 
 

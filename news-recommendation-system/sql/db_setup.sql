@@ -42,9 +42,11 @@ CREATE TABLE news_articles (
 CREATE TABLE news_profiles (
     news_id INT PRIMARY KEY,
     llm_embedding JSON NOT NULL,
-    prob_embedding JSON NOT NULL,
+    prob_embedding Jjson NOT NULL DEFAULT (json_quote('pending')),
+    topic VARCHAR(255) NOT NULL DEFAULT 'pending',
 
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
 
     FOREIGN KEY (news_id) REFERENCES news_articles(news_id) ON DELETE CASCADE
 );
