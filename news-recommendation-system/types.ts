@@ -2,11 +2,14 @@ export interface TestCount {
     count: number
   }
 
-  export interface NewsArticle  {
+export interface NewsArticle {
     news_id: number;
-    content: string;
-    image_url?: string | null; 
-    news_embedding: number[];
-    created_at: string; 
-    updated_at: string; 
-  }
+    title: string;
+    description?: string;
+    url_to_image?: string;
+  };
+
+export interface NewsGroup {
+    topic: string;
+    news: NewsArticle[];
+  };
