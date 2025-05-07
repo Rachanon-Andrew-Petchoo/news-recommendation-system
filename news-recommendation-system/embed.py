@@ -8,6 +8,7 @@ import numpy as np
 from scipy.sparse import csr_matrix
 import os
 from dotenv import load_dotenv
+from hdbscan import HDBSCAN
 
 load_dotenv()
 openai_api_key = os.getenv("OPENAI_KEY")
@@ -27,21 +28,24 @@ def prob_embedding(content: list[str],
                    gpt: bool = False) -> list[float]:
     if not isinstance(embeddings, (np.ndarray, csr_matrix)):
         embeddings = np.array(embeddings, dtype=np.float32)
+    hdbscan_model = HDBSCAN(min_cluster_size=3, metric='euclidean', cluster_selection_method='eom', prediction_data=True)
     if gpt:
         client = openai.Client(api_key=openai_api_key)
+
         prompt = """
         I have a topic that contains the following documents:
         [DOCUMENTS]
 
-        Based on the information above, try to sort them into at least 2 distinct topics and extract a short but highly descriptive topic label of at most 2 words that are human understandble. Make sure it is in the following format:
+        Based on the information above, try to extract a short but highly descriptive topic label of at most 2 words that are human understandble. Make sure it is in the following format:
         topic: <topic label>
         """
         representation_model = OpenAI(client, model="gpt-4o-mini", chat=True, prompt = prompt)
-        topic_model_gpt = BERTopic(representation_model=representation_model, calculate_probabilities= True)
+        topic_model_gpt = BERTopic(representation_model=representation_model, hdbscan_model = hdbscan_model, calculate_probabilities= True)
     else:
-        topic_model_gpt = BERTopic(calculate_probabilities=True)
+        topic_model_gpt = BERTopic(hdbscan_model = hdbscan_model, calculate_probabilities=True)
     
     topics, probs = topic_model_gpt.fit_transform(content, embeddings)
+    # topic_model_gpt.reduce_topics(content, nr_topics=60)
     name_series = topic_model_gpt.get_document_info(content).Name
 
     topics = [n.split("_", 1)[1] for n in name_series]
