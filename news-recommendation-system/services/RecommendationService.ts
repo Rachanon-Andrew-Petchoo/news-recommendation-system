@@ -124,7 +124,7 @@ export class RecommendationService {
             n.url_to_image,
             n.published_at,
             n.source_name,
-            np.news_embedding
+            np.prob_embedding
         FROM 
             news_articles n
         JOIN 
@@ -135,6 +135,8 @@ export class RecommendationService {
             FROM user_interactions 
             WHERE user_id = ?
             )
+            AND np.prob_embedding IS NOT NULL
+            AND np.prob_embedding != 'pending'
         `;
         
         const [rows] = await db.execute<RowDataPacket[]>(query, [userId]);
@@ -148,7 +150,7 @@ export class RecommendationService {
             url_to_image: row.url_to_image,
             published_at: new Date(row.published_at),
             source_name: row.source_name,
-            embedding: JSON.parse(row.news_embedding)
+            embedding: JSON.parse(row.prob_embedding)
         }));
     }
   

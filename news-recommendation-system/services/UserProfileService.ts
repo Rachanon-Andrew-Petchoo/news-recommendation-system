@@ -9,7 +9,7 @@ interface UserInteraction {
     rating: number | null; // Explicit feedback - User Rating
     time_spent_seconds: number; // Implicit feedback
     viewed_at: Date; // Calculating recency with this parameter
-    news_embedding: number[]; // Article embedding vector
+    prob_embedding: number[]; // Article embedding vector
     content_length: number; // Document length for normalization
 }
 
@@ -31,24 +31,24 @@ export class UserProfileService {
      * @param userId (User ID)
      * @returns user interest profile (as a vector)
      */
-    // TODO: Make an endpoint for updating user profile
-    // TODO: update the DB columns for prob_embedding (not news_embedding anymore)
+    
     // Ensure to run this on user login (create hook for this)
     async calculateUserProfile(userId: number): Promise<number[]> {
         try {
             // 1. Fetch all user interactions with associated news embeddings
             const interactions = await this.getUserInteractions(userId);
+            let userProfile: number[] = [];
 
             // 2. Query the db to get prob_embeddings_dim
-            // const news_embedding_dim = DB operations
-            
-            // var userProfile = Vector with {dim} dimension -> all equal prob (meaning 1/dim)
             if (interactions.length > 0) {
+                const embeddingSize = interactions[0].prob_embedding.length;
+                userProfile = new Array(embeddingSize).fill(1/embeddingSize); // Equal probability distribution
+                
                 // 3. Calculate weighted profile based on explicit and implicit feedback
                 userProfile = this.computeWeightedProfile(interactions);
             }
             
-            // 3. Store the updated profile
+            // 4. Store the updated profile
             await this.saveUserProfile(userId, userProfile);
             
             return userProfile;
@@ -71,7 +71,7 @@ export class UserProfileService {
             i.rating, 
             i.time_spent_seconds, 
             i.viewed_at, 
-            np.news_embedding,
+            np.prob_embedding,
             LENGTH(na.content) + LENGTH(na.description) + LENGTH(na.title) as content_length
         FROM 
             user_interactions i
@@ -81,6 +81,8 @@ export class UserProfileService {
             news_profiles np ON i.news_id = np.news_id
         WHERE 
             i.user_id = ?
+            AND np.prob_embedding IS NOT NULL
+            AND np.prob_embedding != 'pending'
         ORDER BY 
             i.viewed_at DESC
         `;
@@ -90,12 +92,12 @@ export class UserProfileService {
         
         // Transform result rows to UserInteraction objects with parsed embeddings
         return rows.map(row => ({
-        news_id: row.news_id,
-        rating: row.rating,
-        time_spent_seconds: row.time_spent_seconds,
-        viewed_at: new Date(row.viewed_at),
-        news_embedding: JSON.parse(row.news_embedding),
-        content_length: row.content_length || 1000 // Just put 1000 as default. We can change it...
+            news_id: row.news_id,
+            rating: row.rating,
+            time_spent_seconds: row.time_spent_seconds,
+            viewed_at: new Date(row.viewed_at),
+            prob_embedding: JSON.parse(row.prob_embedding),
+            content_length: row.content_length || 1000 // Just put 1000 as default. We can change it...
         }));
     }
 
@@ -111,7 +113,7 @@ export class UserProfileService {
         );
         
         // Starting with a zero vector for the user profile
-        const embeddingSize = interactions[0].news_embedding.length;
+        const embeddingSize = interactions[0].prob_embedding.length;
         const profile = new Array(embeddingSize).fill(0);
         
         // Tracking total weight for normalization
@@ -143,7 +145,7 @@ export class UserProfileService {
           
             // Add weighted embedding to the profile
             for (let i = 0; i < profile.length; i++) {
-                profile[i] += interaction.news_embedding[i] * interestWeight;
+                profile[i] += interaction.prob_embedding[i] * interestWeight;
             }
         }
         
