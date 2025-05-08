@@ -13,6 +13,10 @@ export interface NewsOverviewWithTopic_DB extends NewsOverview {
     topic: string;
   }
 
+export interface NewsOverviewWithProbEmbedding_DB extends NewsOverview {
+    prob_embedding: number[];
+  }
+
 export interface NewsGroup {
     topic: string;
     news: NewsOverview[];
