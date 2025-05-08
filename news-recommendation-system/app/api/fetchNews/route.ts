@@ -24,7 +24,6 @@ import pool from "@/libs/mysql";
 // pass the text to the Python script
 // and get the embedding back
 
-
 function llm_embedText(content: string): Promise<number[]> {
   return new Promise((resolve, reject) => {
     const child = execFile('python3', ['embed.py', 'content_embedding'], (err, stdout, stderr) => {
@@ -44,11 +43,8 @@ function llm_embedText(content: string): Promise<number[]> {
   });
 }
 
-
-
-
-// Bertopic 
-function Topic_prediction(content: string[], embeddingArray: number[][]): Promise<[string, ...number[]][]> {
+// BERTopic 
+function topic_prediction(content: string[], embeddingArray: number[][]): Promise<[string, ...number[]][]> {
   return new Promise((resolve, reject) => {
     const child = execFile('python3', ['embed.py', 'prob_embedding'], (err, stdout, stderr) => {
       if (err) return reject(err);
@@ -67,9 +63,11 @@ function Topic_prediction(content: string[], embeddingArray: number[][]): Promis
   });
 }
 
-
 export async function prob_embed() {
+  console.log('Updating prob_embedding of whole DB with BERTopic');
 
+  // Fetch all articles and their embeddings
+  console.log('Getting all articles from DB');
   const db = await pool.getConnection();
   const query = `
   SELECT
@@ -80,47 +78,47 @@ export async function prob_embed() {
   JOIN news_profiles AS np
     ON a.news_id = np.news_id
   `;
-  
   const [rows] = await db.execute<RowDataPacket[]>(query);
+
+  // Call BERTopic to get prob_embedding
+  console.log('Calling BERTopic...');
   const contents = rows.map(r => r.content);
-
   const embeddings = rows.map(r => r.llm_embedding);
-  console.log(embeddings[0]);
-  console.log('embeddingArray gatheres');
-  // call your analysis function
-  const resultsList = (await Topic_prediction(contents, embeddings))as [string, ...number[]][];
-  console.log('prediction done');
 
+  const resultsList = (await topic_prediction(contents, embeddings)) as [string, ...number[]][];
+  console.log('BERTopic completed');
+
+  // Save articles' prob_embedding to DB
+  console.log("Saving article's BERTopic embedding...");
   const updateSql = `
       UPDATE news_profiles
-         SET topic = ?, prob_embedding = ?, updated_at = NOW()
+         SET topic = ?, prob_embedding = ?
        WHERE news_id = ?;
     `;
-    for (let i = 0; i < rows.length; i++) {
-      const newsId = rows[i].news_id;
-      const tuple = resultsList[i] as [string, ...number[]];
-      const topic = tuple[0];
-    // ...and everything else as the probs
-      const probEmbedding = tuple.slice(1);
-    
-      await db.execute<ResultSetHeader>(updateSql, [
-        topic,
-        probEmbedding,
-        newsId
-      ]);
-    }
+  for (let i = 0; i < rows.length; i++) {
+    const newsId = rows[i].news_id;
+
+    const tuple = resultsList[i] as [string, ...number[]];
+    const topic = tuple[0]; // First element = topic
+    const probEmbedding = tuple.slice(1); // and everything else = prob_embedding
+  
+    await db.execute<ResultSetHeader>(updateSql, [
+      topic,
+      probEmbedding,
+      newsId
+    ]);
+  }
+  console.log("✔ Completed: saving articles' BERTopic embedding...");
     
   return;
 }
 
-
-
-// Fetch all the content from the News API
+// Fetch articles from the News API + Calculate llm_embedding
 export async function fetchAndStoreNews() {
   const newsAPI = new NewsAPI(process.env.NEWS_API_KEY!);
     
+  console.log('Calling the news api');
   // fetch top headlines
-
   const response = await newsAPI.getTopHeadlines({
       country: 'us',
     });
@@ -129,27 +127,29 @@ export async function fetchAndStoreNews() {
   
   const articles = response.articles || [];
   if (articles.length === 0) {
-    console.log('No headlines found.');
+    console.log('No articles found.');
     return;
   }
-  console.log('called the news api');
+  console.log('Finished fetching from the news api');
+
   for (const item of articles) {
     if (!item.url) continue;
 
-    // download the full article HTML
-    // Reference website: https://newsapi.org/docs/guides/how-to-get-the-full-content-for-a-news-article
     try {
+      console.log('Processing article...');
+      // Download the full article HTML
+      // Reference website: https://newsapi.org/docs/guides/how-to-get-the-full-content-for-a-news-article
       const htmlRes = await axios.get(item.url, { responseType: 'text' });
       const dom = new JSDOM(htmlRes.data, { url: item.url });
-
       const parsed = new Readability(dom.window.document).parse();
       const fullContent = parsed?.textContent?.trim()
         ?? [item.title, item.description].filter(Boolean).join('\n\n');
 
-      // embed the content
+      // Embed the content into LLM embeddings
       const news_embedding = await llm_embedText(fullContent);
 
-      // output items
+      // Write article to news_articles DB
+      console.log('Saving article...');
       const author = item.author;
       const source_name = item.source.name;
       const source_id = item.source.id;
@@ -158,15 +158,13 @@ export async function fetchAndStoreNews() {
       const url = item.url;
       const publishedAt = item.publishedAt;
       const image_url = item.urlToImage ?? null;
-      const now = new Date().toISOString();
       
-
       const [res] = await pool.execute<import('mysql2').ResultSetHeader>(
         `
         INSERT INTO news_articles
-          (source_id, source_name, author, title, description, url, published_at, content, url_to_image, created_at, updated_at)
+          (source_id, source_name, author, title, description, url, published_at, content, url_to_image)
         VALUES
-          (?,?,?, ?, ?, ?, ?, ?, ?, ?, ?);
+          (?, ?, ?, ?, ?, ?, ?, ?, ?);
         `,
         [
           source_id,
@@ -177,30 +175,30 @@ export async function fetchAndStoreNews() {
           url,
           publishedAt,
           fullContent,
-          image_url,
-          now,
-          now
+          image_url
         ]
       );
       const newsId = res.insertId;
-      console.log('done fetch news, start embedding');
+
+      // Write article to news_articles DB
+      console.log("Saving article's LLM embedding...");
       await pool.execute<import('mysql2').ResultSetHeader>(
         `
         INSERT INTO news_profiles
-          (news_id, llm_embedding, updated_at)
+          (news_id, llm_embedding)
         VALUES
-          (?, ?, ?)
+          (?, ?)
         `,
         [
           newsId,
-          JSON.stringify(news_embedding),
-          now,
+          JSON.stringify(news_embedding)
         ]
       );
-      console.log('✔ Inserted article:', item.title);
+
+      console.log('✔ Completed article ' + newsId + ' :' + item.title);
     }
     catch(error) {
-      console.log('Error fetching article:', item.title, error);
+      console.log('Error processing article: ', item.title, error);
       continue;
     }
   }
@@ -209,13 +207,9 @@ export async function fetchAndStoreNews() {
 
 export async function GET(request: NextRequest) {
   await fetchAndStoreNews()
-  /***
-   * Calling bertopic for prob distributions of all articles
-   */
-
-  console.log('call the berttopic');
+  
   await prob_embed();
 
-  return NextResponse.json({ message: 'Done' });
+  return NextResponse.json({ message: 'success' });
 
 }
