@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { CircularProgress, Alert, AlertTitle, Rating } from '@mui/material';
 import { NewsArticle } from '@/types';
+import { useUserId } from '@/app/components/SessionWrapper';
 
 export default function NewsArticlePage() {
   const { id } = useParams();
+  const userId = useUserId();
 
   const [news, setNews] = useState<NewsArticle | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,10 +45,28 @@ export default function NewsArticlePage() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleRatingChange = (_event: any, newValue: number | null) => {
-    setRating(newValue);
-    // You can also send this to your backend here
-  };
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (!news || !userId) return;
+
+      const payload = {
+        user_id: userId,
+        news_id: news.news_id,
+        time_spent_seconds: timeSpent,
+        rating, // Can be null
+      };
+
+      navigator.sendBeacon(
+        '/api/addUserInteraction',
+        new Blob([JSON.stringify(payload)], { type: 'application/json' })
+      );
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [news, userId, timeSpent, rating]);
 
   return (
     <div className="space-y-4 max-w-4xl mx-auto px-4 pb-8">
@@ -131,7 +151,9 @@ export default function NewsArticlePage() {
                   name="article-rating"
                   size="large"
                   value={rating}
-                  onChange={handleRatingChange}
+                  onChange={(_event: any, newRating: number | null) => {
+                    setRating(newRating);
+                  }}
                 />
                 {rating && (
                   <p className="text-sm text-green-600">
