@@ -1,13 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { UserProfileService } from "@/services/UserProfileService";
-import { useUserId } from "@/app/components/SessionWrapper";
+import { getServerSession } from "next-auth";
+import { authOptions } from "../auth/[...nextauth]/authOptions";
 
 export async function POST(request: NextRequest) {
   try {
-    const userId = useUserId();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized: User not logged in" }, { status: 401 });
+    // Get the session on the server-side
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user?.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Fetch user_id from internal API
+    const res = await fetch(`${process.env.NEXTAUTH_URL}/api/auth/getUserId`, {
+      method: "GET",
+      headers: {
+        Cookie: request.headers.get("cookie") || "", // Forward session cookie
+      },
+    });
+    if (!res.ok) {
+      const errorData = await res.json();
+      return NextResponse.json(errorData, { status: res.status });
+    }
+    const { user_id: userId } = await res.json();
 
     // Update user profile
     const userProfileService = new UserProfileService();
