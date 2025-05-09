@@ -16,7 +16,7 @@ export class RecommendationService {
      * @param limit Maximum number of recommendations to return
      * @returns Recommended news articles array with similarity scores
      */
-    async getRecommendations(userId: number, limit: number = 10): Promise<NewsOverview[]> {
+    async getRecommendations(userId: number, limit: number = 10, recalculateProfile: boolean = true): Promise<NewsOverview[]> {
         try {
             // 1. Fetch candidate news articles (not viewed by the user)
             const candidateArticles = await this.getCandidateArticles(userId);
@@ -26,7 +26,7 @@ export class RecommendationService {
             }
 
             // 2. Get the user's profile (always update profile with user interactions)
-            const userProfile = await this.userProfileService.calculateUserProfile(userId);
+            const userProfile = await this.getUserProfile(userId, recalculateProfile);
         
             // 3. Calculate similarity scores between user profile and each article
             const scoredArticles = candidateArticles.map(article => {
@@ -98,6 +98,34 @@ export class RecommendationService {
             url_to_image: row.url_to_image,
             prob_embedding: JSON.parse(row.prob_embedding)
         }));
+    }
+
+    private async getUserProfile(userId: number, recalculateProfile: boolean): Promise<number[]> {
+        try {
+            if (recalculateProfile === true) {
+                return (await this.userProfileService.calculateUserProfile(userId));
+            } else {
+                const db = await pool.getConnection();
+                const query = `
+                    SELECT user_embedding
+                    FROM user_profiles
+                    WHERE user_id = ?
+                `;
+                const [rows] = await db.execute<RowDataPacket[]>(query, [userId]);
+                db.release();
+                
+                // Profile exists? Parse it and return
+                if (rows.length > 0 && rows[0].user_embedding) {
+                    return JSON.parse(rows[0].user_embedding);
+                }
+                
+                // Profile doesn't exist? Then calculate it!
+                return (await this.userProfileService.calculateUserProfile(userId));
+            }
+        } catch (error) {
+            console.error(`Error retrieving/creating user profile for user ${userId}:`, error);
+            throw error;
+        }
     }
   
     /**

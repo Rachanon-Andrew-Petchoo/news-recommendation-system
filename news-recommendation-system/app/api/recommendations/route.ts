@@ -12,10 +12,12 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const limitParam = searchParams.get("limit");
     const limit = (limitParam !== null) ? parseInt(limitParam) : undefined;
+    const recalculateProfileParam = searchParams.get("recalculateProfile");
+    const recalculateProfile = (recalculateProfileParam !== null) ? (recalculateProfileParam.toLowerCase() !== "false") : undefined;
 
     // Get recommendations using the RecommendationService
     const recommendationService = new RecommendationService();
-    const recommendations = await recommendationService.getRecommendations(userId, limit);
+    const recommendations = await recommendationService.getRecommendations(userId, limit, recalculateProfile);
 
     return NextResponse.json(recommendations);
   } catch (error) {
