@@ -44,7 +44,7 @@ function llm_embedText(content: string): Promise<number[]> {
 }
 
 // BERTopic 
-function topic_prediction(content: string[], embeddingArray: number[][]): Promise<[string, ...number[]][]> {
+function topic_prediction(content: string[], embeddingArray: number[][]): Promise<[string, number[]][]> {
   return new Promise((resolve, reject) => {
     const child = execFile('python3', ['embed.py', 'prob_embedding'], (err, stdout, stderr) => {
       if (err) return reject(err);
@@ -85,7 +85,7 @@ export async function prob_embed() {
   const contents = rows.map(r => r.content);
   const embeddings = rows.map(r => r.llm_embedding);
 
-  const resultsList = (await topic_prediction(contents, embeddings)) as [string, ...number[]][];
+  const resultsList = (await topic_prediction(contents, embeddings));
   console.log('BERTopic completed');
 
   // Save articles' prob_embedding to DB
@@ -98,9 +98,9 @@ export async function prob_embed() {
   for (let i = 0; i < rows.length; i++) {
     const newsId = rows[i].news_id;
 
-    const tuple = resultsList[i] as [string, ...number[]];
+    const tuple = resultsList[i];
     const topic = tuple[0]; // First element = topic
-    const probEmbedding = tuple.slice(1); // and everything else = prob_embedding
+    const probEmbedding = tuple[1]; // Second element = prob_embedding
   
     await db.execute<ResultSetHeader>(updateSql, [
       topic,
