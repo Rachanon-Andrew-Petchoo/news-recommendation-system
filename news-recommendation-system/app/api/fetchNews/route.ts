@@ -113,6 +113,16 @@ export async function prob_embed() {
   return;
 }
 
+// Helper to timeout a promise
+function withTimeout<T>(promise: Promise<T>, ms: number, label = ""): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`Timeout after ${ms}ms ${label && `(${label})`}`)), ms)
+    ),
+  ])
+}
+
 // Fetch articles from the News API + Calculate llm_embedding
 export async function fetchAndStoreNews() {
   const newsAPI = new NewsAPI(process.env.NEWS_API_KEY!);
@@ -136,10 +146,14 @@ export async function fetchAndStoreNews() {
     if (!item.url) continue;
 
     try {
-      console.log('Processing article...');
+      console.log('Downloading article:', item.url.trim());
       // Download the full article HTML
       // Reference website: https://newsapi.org/docs/guides/how-to-get-the-full-content-for-a-news-article
-      const htmlRes = await axios.get(item.url, { responseType: 'text' });
+      const htmlRes = await withTimeout(
+        axios.get(item.url.trim(), { responseType: 'text' }),
+        10_000,
+        "HTML download"
+      );
       const dom = new JSDOM(htmlRes.data, { url: item.url });
       const parsed = new Readability(dom.window.document).parse();
       const fullContent = parsed?.textContent?.trim()
