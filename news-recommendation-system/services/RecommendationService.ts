@@ -96,7 +96,7 @@ export class RecommendationService {
             title: row.title,
             description: row.description,
             url_to_image: row.url_to_image,
-            prob_embedding: JSON.parse(row.prob_embedding)
+            prob_embedding: row.prob_embedding
         }));
     }
 
@@ -116,7 +116,7 @@ export class RecommendationService {
                 
                 // Profile exists? Parse it and return
                 if (rows.length > 0 && rows[0].user_embedding) {
-                    return JSON.parse(rows[0].user_embedding);
+                    return rows[0].user_embedding;
                 }
                 
                 // Profile doesn't exist? Then calculate it!

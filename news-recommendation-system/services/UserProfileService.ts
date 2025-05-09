@@ -32,7 +32,7 @@ export class UserProfileService {
             throw new Error("No valid prob_embedding found in news_profiles");
         }
     
-        const embedding = JSON.parse(rows[0].prob_embedding);
+        const embedding = rows[0].prob_embedding;
         if (!Array.isArray(embedding)) {
             throw new Error("prob_embedding is not a valid array");
         }
@@ -105,7 +105,7 @@ export class UserProfileService {
             rating: row.rating,
             time_spent_seconds: row.time_spent_seconds,
             viewed_at: new Date(row.viewed_at),
-            prob_embedding: JSON.parse(row.prob_embedding),
+            prob_embedding: row.prob_embedding,
             content_length: row.content_length
         }));
     }
