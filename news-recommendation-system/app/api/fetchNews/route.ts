@@ -222,10 +222,10 @@ export async function fetchAndStoreNews() {
         ]
       );
 
-      console.log('✔ Completed article ' + newsId + ': ' + item.title);
+      console.log('✔ Completed article ' + newsId + ': ' + item.url.trim());
     }
     catch(error) {
-      console.log('Error processing article: ', item.title, error);
+      console.log('Error processing article: ', item.url.trim());
       continue;
     }
   }
