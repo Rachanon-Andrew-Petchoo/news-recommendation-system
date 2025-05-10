@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
         p.topic
       FROM news_articles a
       JOIN news_profiles p ON a.news_id = p.news_id
-      WHERE (p.topic IS NOT NULL) AND (p.topic != 'pending')
+      WHERE (p.topic IS NOT NULL)
     `;
     const [rows] = await db.execute<RowDataPacket[]>(query);
     db.release();

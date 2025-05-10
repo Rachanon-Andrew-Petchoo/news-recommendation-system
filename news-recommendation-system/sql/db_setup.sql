@@ -44,8 +44,8 @@ CREATE TABLE news_articles (
 CREATE TABLE news_profiles (
     news_id INT PRIMARY KEY,
     llm_embedding JSON NOT NULL,
-    prob_embedding JSON NOT NULL DEFAULT (json_quote('pending')),
-    topic VARCHAR(255) NOT NULL DEFAULT 'pending',
+    prob_embedding JSON,
+    topic VARCHAR(255),
 
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 

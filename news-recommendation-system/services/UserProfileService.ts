@@ -22,7 +22,7 @@ export class UserProfileService {
         const query = `
             SELECT prob_embedding
             FROM news_profiles
-            WHERE JSON_VALID(prob_embedding)
+            WHERE (prob_embedding IS NOT NULL)
             LIMIT 1;
         `;
         const [rows] = await db.execute<RowDataPacket[]>(query);
@@ -93,7 +93,7 @@ export class UserProfileService {
         WHERE 
             i.user_id = ?
         AND 
-            JSON_VALID(np.prob_embedding)
+            (np.prob_embedding IS NOT NULL)
     `;
 
         const [rows] = await db.execute<RowDataPacket[]>(query, [userId]);

@@ -85,7 +85,7 @@ export class RecommendationService {
                     WHERE user_id = ?
                 )
             AND 
-                JSON_VALID(np.prob_embedding)
+                (np.prob_embedding IS NOT NULL)
         `;
         
         const [rows] = await db.execute<RowDataPacket[]>(query, [userId]);
