@@ -17,29 +17,6 @@ export class UserProfileService {
     private STARS_FOR_ONE_VISIT = 2
     private STARS_FOR_NEXT_READ = 0.5
 
-    private async getProbEmbeddingsDimension(): Promise<number> {
-        const db = await pool.getConnection();
-        const query = `
-            SELECT prob_embedding
-            FROM news_profiles
-            WHERE (prob_embedding IS NOT NULL)
-            LIMIT 1;
-        `;
-        const [rows] = await db.execute<RowDataPacket[]>(query);
-        db.release();
-    
-        if (rows.length === 0) {
-            throw new Error("No valid prob_embedding found in news_profiles");
-        }
-    
-        const embedding = rows[0].prob_embedding;
-        if (!Array.isArray(embedding)) {
-            throw new Error("prob_embedding is not a valid array");
-        }
-    
-        return embedding.length;
-    }
-
     /**
      * Calculating a user's interest profile with this function
      * @param userId (User ID)
@@ -67,6 +44,29 @@ export class UserProfileService {
             console.error(`Error calculating profile for user ${userId}:`, error);
             throw error;
         }
+    }
+
+    private async getProbEmbeddingsDimension(): Promise<number> {
+        const db = await pool.getConnection();
+        const query = `
+            SELECT prob_embedding
+            FROM news_profiles
+            WHERE (prob_embedding IS NOT NULL)
+            LIMIT 1;
+        `;
+        const [rows] = await db.execute<RowDataPacket[]>(query);
+        db.release();
+    
+        if (rows.length === 0) {
+            throw new Error("No valid prob_embedding found in news_profiles");
+        }
+    
+        const embedding = rows[0].prob_embedding;
+        if (!Array.isArray(embedding)) {
+            throw new Error("prob_embedding is not a valid array");
+        }
+    
+        return embedding.length;
     }
 
     /**
