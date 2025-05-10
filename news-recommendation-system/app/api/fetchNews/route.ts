@@ -90,24 +90,29 @@ export async function prob_embed() {
 
   // Save articles' prob_embedding to DB
   console.log("Saving article's BERTopic embedding...");
-  const updateSql = `
-      UPDATE news_profiles
-         SET topic = ?, prob_embedding = ?
-       WHERE news_id = ?;
-    `;
+  const casesTopic: string[] = [];
+  const casesProb: string[] = [];
+  const ids: number[] = [];
+
   for (let i = 0; i < rows.length; i++) {
     const newsId = rows[i].news_id;
+    const [topic, probEmbedding] = resultsList[i];
 
-    const tuple = resultsList[i];
-    const topic = tuple[0]; // First element = topic
-    const probEmbedding = tuple[1]; // Second element = prob_embedding
-  
-    await db.execute<ResultSetHeader>(updateSql, [
-      topic,
-      probEmbedding,
-      newsId
-    ]);
+    ids.push(newsId);
+    casesTopic.push(`WHEN ${newsId} THEN ${db.escape(topic)}`);
+    casesProb.push(`WHEN ${newsId} THEN ${db.escape(JSON.stringify(probEmbedding))}`);
   }
+
+  const updateQuery = `
+    UPDATE news_profiles
+       SET topic = CASE news_id ${casesTopic.join(' ')} END,
+           prob_embedding = CASE news_id ${casesProb.join(' ')} END
+     WHERE news_id IN (${ids.join(',')});
+  `;
+
+  await db.execute(updateQuery);
+  db.release();
+  
   console.log("✔ Completed: saving articles' BERTopic embedding...");
     
   return;
