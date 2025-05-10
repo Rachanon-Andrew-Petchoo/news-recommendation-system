@@ -142,7 +142,15 @@ export async function fetchAndStoreNews() {
   }
   console.log('Finished fetching from the news api');
 
-  for (const item of articles) {
+  // Filtered out articles already existed on DB
+  const [existingRows] = await pool.execute<import('mysql2').RowDataPacket[]>(
+    `SELECT url FROM news_articles`
+  );
+  const existingUrls = new Set(existingRows.map((row: any) => row.url));
+  const newArticles = articles.filter((item) => item.url && !existingUrls.has(item.url));
+  console.log(`Fetched ${articles.length} articles, ${newArticles.length} are new.`);
+
+  for (const item of newArticles) {
     if (!item.url) continue;
 
     try {
@@ -209,7 +217,7 @@ export async function fetchAndStoreNews() {
         ]
       );
 
-      console.log('✔ Completed article ' + newsId + ' :' + item.title);
+      console.log('✔ Completed article ' + newsId + ': ' + item.title);
     }
     catch(error) {
       console.log('Error processing article: ', item.title, error);
