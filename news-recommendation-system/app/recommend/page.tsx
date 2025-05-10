@@ -24,7 +24,11 @@ export default function RecommendedNewsPage() {
 
         const response = await fetch(`/api/recommendations?${query}`);
         if (!response.ok) {
-          throw new Error(`Failed to fetch /api/recommendations`);
+          if (response.status === 401) {
+            throw new Error(`Must login first to get recommendations`);
+          } else {
+            throw new Error(`Failed to fetch /api/recommendations`);
+          }
         }
         const data: NewsOverview[] = await response.json();
 
